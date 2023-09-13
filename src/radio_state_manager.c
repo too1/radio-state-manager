@@ -19,6 +19,33 @@ static rsm_state_t *find_state_by_id(uint32_t id)
 	return 0;
 }
 
+static void execute_state_change(rsm_state_t *next_state, uint32_t reason)
+{
+	rsm_state_t *current_state = rsm_state_mngr.current_state;
+	if (current_state != 0) {
+		current_state->end_reason = reason;
+
+		if(current_state->on_state_end) {
+			// Call the state end callback for the old state
+			current_state->on_state_end(current_state, next_state);
+		}
+	}
+	if (next_state != NULL) {
+		// Apply default state radio configuration
+		apply_radio_config(next_state);
+		
+		if (next_state->on_state_start) {
+			// Call the state start callback for the new state
+			next_state->on_state_start(next_state, current_state);
+		}
+		
+		// Increase the repeat counter of the state
+		next_state->repeat++;
+
+		rsm_state_mngr.current_state = next_state;
+	}
+}
+
 ISR_DIRECT_DECLARE(RADIO_IRQHandler)
 {
 	rsm_state_t *goto_state;
@@ -27,12 +54,17 @@ ISR_DIRECT_DECLARE(RADIO_IRQHandler)
 	    nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_DISABLED)) {
 		nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_DISABLED);
 
-		if (current_state->on_radio_disabled) {
-			current_state->on_radio_disabled(current_state);
-		}
-		goto_state = find_state_by_id(current_state->on_radio_disabled_goto_state);
-		if (goto_state) {
-			rsm_activate(goto_state);
+		// First check if we have reached the repeat limit
+		if (current_state->repeat >= current_state->repeat_limit && 
+			(goto_state = find_state_by_id(current_state->on_repeat_limit_goto_state))) {
+			current_state->repeat = 0;
+			execute_state_change(goto_state, RSM_END_REASON_REPEAT);
+		// Otherwise see if there is a regular disabled callback stored
+		} else {
+			goto_state = find_state_by_id(current_state->on_radio_disabled_goto_state);
+			if (goto_state) {
+				execute_state_change(goto_state, RSM_END_REASON_RADIO_DIS);
+			}
 		}
 	}
 
@@ -64,30 +96,6 @@ int rsm_add_state(rsm_state_t *newstate)
 
 int rsm_activate(rsm_state_t *next_state)
 {
-	rsm_state_t *current_state = rsm_state_mngr.current_state;
-	if (current_state != 0) {
-		// Hacky fix to divert the state change when reaching the repeat limit 
-		if(current_state->repeat >= current_state->repeat_limit && find_state_by_id(current_state->on_repeat_limit_goto_state) != 0) {
-			current_state->repeat = 0;
-			next_state = find_state_by_id(current_state->on_repeat_limit_goto_state);
-		}
-
-		if(current_state->on_state_end) {
-			// Call the state end callback for the old state
-			current_state->on_state_end(current_state, next_state);
-		}
-	}
-	if (next_state != NULL) {
-		if (next_state->on_state_start) {
-			// Apply default state radio configuration
-			apply_radio_config(next_state);
-			// Call the state start callback for the new state
-			next_state->on_state_start(next_state, current_state);
-			// Increase the repeat counter of the state
-			next_state->repeat++;
-
-			rsm_state_mngr.current_state = next_state;
-		}
-	}
+	execute_state_change(next_state, RSM_END_REASON_USER);
 	return 0;
 }

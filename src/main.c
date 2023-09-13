@@ -4,12 +4,13 @@
 enum MY_STATES {STATE_IDLE = 1, STATE_TX, STATE_RX};
 
 void state_tx_start(rsm_state_t *state, rsm_state_t *other);
-void state_tx_radio_end(rsm_state_t *state);
+void state_idle_start(rsm_state_t *state, rsm_state_t *other);
 
 rsm_state_t m_state_idle = {
 	.id = STATE_IDLE,
 	.name_str = "Idle State",
-	.radio_shorts = 0
+	.radio_shorts = 0,
+	.on_state_start = state_idle_start
 };
 
 rsm_state_t m_state_tx = {
@@ -40,10 +41,11 @@ void state_tx_start(rsm_state_t *state, rsm_state_t *other)
 	NRF_RADIO->TASKS_TXEN = 1;
 }
 
-void state_tx_radio_end(rsm_state_t *state)
+void state_idle_start(rsm_state_t *state, rsm_state_t *other)
 {
-
+	printk("Radio idle\n");
 }
+
 static void start_tx(int num)
 {
 	m_state_tx.repeat_limit = num;

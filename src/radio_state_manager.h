@@ -5,6 +5,11 @@
 
 #define RSM_MAX_STATES 32
 
+enum rsm_state_end_reason {RSM_END_REASON_USER = 1, 
+						   RSM_END_REASON_TIMEOUT,
+						   RSM_END_REASON_RADIO_DIS,
+						   RSM_END_REASON_REPEAT};
+
 typedef struct _rsm_state_t rsm_state_t;
 
 typedef void (*rsm_state_irq_t)(rsm_state_t *state, rsm_state_t *other);
@@ -18,10 +23,13 @@ struct _rsm_state_t {
 	// State runtime parameters
 	uint32_t repeat;
 	uint32_t repeat_limit;
+	uint32_t timeout_us;
 
+	// Automatic state change variables
 	uint32_t on_radio_disabled_goto_state;
 	uint32_t on_repeat_limit_goto_state;
-	uint32_t timeout_us;
+
+	uint32_t end_reason;
 
 	// Radio configuration parameters
 	uint32_t radio_shorts;
@@ -29,9 +37,6 @@ struct _rsm_state_t {
 	// State change callbacks
 	rsm_state_irq_t on_state_start;
 	rsm_state_irq_t on_state_end;
-
-	// Radio interrupt callbacks
-	rsm_radio_irq_t on_radio_disabled;
 };
 
 struct rsm_state_mngr_t {
