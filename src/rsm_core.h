@@ -5,7 +5,7 @@
 
 #define RSM_MAX_STATES 32
 
-#define RSM_RUN_TASK(a) *((uint32_t *)a) = 1
+#define RSM_RUN_TASK(a) *((uint32_t *)(a)) = 1
 
 enum rsm_state_end_reason {RSM_END_REASON_USER = 1, 
 						   RSM_END_REASON_TIMEOUT,
@@ -45,6 +45,9 @@ struct _rsm_state_t {
 	const uint32_t task_state_start;
 	const uint32_t task_state_end;
 	const uint32_t task_state_timeout;
+
+	// State event configurations
+	const uint32_t event_set_anchor;
 };
 
 struct rsm_state_mngr_t {

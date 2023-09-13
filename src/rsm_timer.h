@@ -12,4 +12,6 @@ void rsm_timer_init(void);
 
 void rsm_timer_schedule_timeout(uint32_t time_us, on_timeout_callback callback);
 
+void rsm_timer_set_anchor(void);
+
 #endif
