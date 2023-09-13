@@ -1,5 +1,5 @@
 #include <zephyr/kernel.h>
-#include "radio_state_manager.h"
+#include "rsm_core.h"
 
 enum MY_STATES {STATE_IDLE = 1, STATE_TX, STATE_RX};
 

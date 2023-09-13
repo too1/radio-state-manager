@@ -3,4 +3,4 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(radio_state_test)
 
-target_sources(app PRIVATE src/main.c src/radio_state_manager.c)
+target_sources(app PRIVATE src/main.c src/rsm_core.c)
